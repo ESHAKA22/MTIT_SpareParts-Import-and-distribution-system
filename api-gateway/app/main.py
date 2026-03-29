@@ -11,6 +11,10 @@ CART_SERVICE_URL = os.getenv("CART_SERVICE_URL", "http://localhost:8001")
 PAYMENT_SERVICE_URL = os.getenv("PAYMENT_SERVICE_URL", "http://localhost:8002")
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8005")
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://localhost:8004")
+COMPLAINT_SERVICE_URL = os.getenv("COMPLAINT_SERVICE_URL", "http://localhost:8008")
+CATALOGUE_SERVICE_URL = os.getenv("CATALOGUE_SERVICE_URL", "http://localhost:8009")
+
+
 app = FastAPI(
     title="API Gateway",
     description="Gateway for Cart Service and Payment Service",
@@ -32,8 +36,11 @@ def root():
             "users": "/users",
             "user_docs": "/users/docs",
             "orders": "/orders",
-"order_docs": "/orders/docs",
-            
+            "order_docs": "/orders/docs",
+            "complaints": "/complaints",
+            "complaint_docs": "/complaints/docs",
+            "catalogue": "/catalogue",
+            "catalogue_docs": "/catalogue/docs",
         }
     }
 
@@ -73,6 +80,21 @@ def order_docs():
     )
 
 
+@app.get("/complaints/docs", include_in_schema=False)
+def complaint_docs():
+    return get_swagger_ui_html(
+        openapi_url="/complaints/openapi.json",
+        title="Complaint Service Docs via Gateway"
+    )
+    
+@app.get("/catalogue/docs", include_in_schema=False)
+def catalogue_docs():
+    return get_swagger_ui_html(
+        openapi_url="/catalogue/openapi.json",
+        title="Catalogue Service Docs via Gateway"
+    )
+
+
 @app.get("/cart/openapi.json", include_in_schema=False)
 async def cart_openapi():
     async with httpx.AsyncClient() as client:
@@ -96,6 +118,19 @@ async def user_openapi():
 async def order_openapi():
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{ORDER_SERVICE_URL}/openapi.json")
+        return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/complaints/openapi.json", include_in_schema=False)
+async def complaint_openapi():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{COMPLAINT_SERVICE_URL}/openapi.json")
+        return JSONResponse(content=response.json(), status_code=response.status_code)
+        
+@app.get("/catalogue/openapi.json", include_in_schema=False)
+async def catalogue_openapi():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{CATALOGUE_SERVICE_URL}/openapi.json")
         return JSONResponse(content=response.json(), status_code=response.status_code)
 
 async def proxy_request(request: Request, target_base_url: str, path: str) -> Response:
@@ -165,3 +200,27 @@ async def proxy_orders_root(request: Request):
 @app.api_route("/orders/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_orders_path")
 async def proxy_orders(path: str, request: Request):
     return await proxy_request(request, ORDER_SERVICE_URL, f"orders/{path}")
+
+# -----------------------------
+# Complaint proxy routes
+# -----------------------------
+@app.api_route("/complaints", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_complaints_root")
+async def proxy_complaints_root(request: Request):
+    return await proxy_request(request, COMPLAINT_SERVICE_URL, "complaints")
+
+
+@app.api_route("/complaints/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_complaints_path")
+async def proxy_complaints(path: str, request: Request):
+    return await proxy_request(request, COMPLAINT_SERVICE_URL, f"complaints/{path}")
+
+# -----------------------------
+# Catalogue proxy routes
+# -----------------------------
+@app.api_route("/catalogue", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_root")
+async def proxy_catalogue_root(request: Request):
+    return await proxy_request(request, CATALOGUE_SERVICE_URL, "catalogue")
+
+
+@app.api_route("/catalogue/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_path")
+async def proxy_catalogue(path: str, request: Request):
+    return await proxy_request(request, CATALOGUE_SERVICE_URL, f"catalogue/{path}")
