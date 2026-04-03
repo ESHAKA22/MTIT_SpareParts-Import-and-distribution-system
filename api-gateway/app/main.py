@@ -112,7 +112,18 @@ async def payment_openapi():
 async def user_openapi():
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{USER_SERVICE_URL}/openapi.json")
-        return JSONResponse(content=response.json(), status_code=response.status_code)
+        data = response.json()
+
+        new_paths = {}
+        for path, value in data.get("paths", {}).items():
+            if path.startswith("/api/users"):
+                new_path = path.replace("/api/users", "/users", 1)
+            else:
+                new_path = f"/users{path}" if path.startswith("/") else f"/users/{path}"
+            new_paths[new_path] = value
+
+        data["paths"] = new_paths
+        return JSONResponse(content=data, status_code=response.status_code)
 
 @app.get("/orders/openapi.json", include_in_schema=False)
 async def order_openapi():
@@ -131,8 +142,18 @@ async def complaint_openapi():
 async def catalogue_openapi():
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{CATALOGUE_SERVICE_URL}/openapi.json")
-        return JSONResponse(content=response.json(), status_code=response.status_code)
+        data = response.json()
 
+        new_paths = {}
+        for path, value in data.get("paths", {}).items():
+            if path.startswith("/products"):
+                new_path = path.replace("/products", "/catalogue", 1)
+            else:
+                new_path = f"/catalogue{path}" if path.startswith("/") else f"/catalogue/{path}"
+            new_paths[new_path] = value
+
+        data["paths"] = new_paths
+        return JSONResponse(content=data, status_code=response.status_code)
 async def proxy_request(request: Request, target_base_url: str, path: str) -> Response:
     async with httpx.AsyncClient() as client:
         target_url = f"{target_base_url}/{path}"
@@ -167,6 +188,11 @@ async def proxy_request(request: Request, target_base_url: str, path: str) -> Re
 # -----------------------------
 # Cart proxy routes
 # -----------------------------
+
+@app.api_route("/cart", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_cart_root")
+async def proxy_cart_root(request: Request):
+    return await proxy_request(request, CART_SERVICE_URL, "cart")
+
 @app.api_route("/cart/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_cart(path: str, request: Request):
     return await proxy_request(request, CART_SERVICE_URL, f"cart/{path}")
@@ -174,7 +200,9 @@ async def proxy_cart(path: str, request: Request):
 # -----------------------------
 # payments proxy routes
 # -----------------------------
-
+@app.api_route("/payments", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_payments_root")
+async def proxy_payments_root(request: Request):
+    return await proxy_request(request, PAYMENT_SERVICE_URL, "payments")
 
 @app.api_route("/payments/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_payments(path: str, request: Request):
@@ -218,9 +246,9 @@ async def proxy_complaints(path: str, request: Request):
 # -----------------------------
 @app.api_route("/catalogue", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_root")
 async def proxy_catalogue_root(request: Request):
-    return await proxy_request(request, CATALOGUE_SERVICE_URL, "catalogue")
+    return await proxy_request(request, CATALOGUE_SERVICE_URL, "products")
 
 
 @app.api_route("/catalogue/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_path")
 async def proxy_catalogue(path: str, request: Request):
-    return await proxy_request(request, CATALOGUE_SERVICE_URL, f"catalogue/{path}")
+    return await proxy_request(request, CATALOGUE_SERVICE_URL, f"products/{path}")
