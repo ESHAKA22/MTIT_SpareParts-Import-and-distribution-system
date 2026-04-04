@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional, Tuple
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.database import payment_collection
 from app.schemas import PaymentCreate
 from app.utils import serialize_doc
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -33,12 +34,14 @@ def health_check():
 
 
 @router.post("/process")
-def process_payment(payload: PaymentCreate):
+def process_payment(payload: PaymentCreate, current_user: dict = Depends(get_current_user)):
+    # Use email from JWT token as customer_id
+    customer_id = current_user["email"]
     payment_status, message = mock_payment_status(payload.card_number)
 
     payment_doc = {
         "order_id": payload.order_id,
-        "customer_id": payload.customer_id,
+        "customer_id": customer_id,
         "amount": payload.amount,
         "payment_method": payload.payment_method.upper(),
         "card_number": payload.card_number,
@@ -60,7 +63,7 @@ def process_payment(payload: PaymentCreate):
 
 
 @router.get("/{payment_id}")
-def get_payment(payment_id: str):
+def get_payment(payment_id: str, current_user: dict = Depends(get_current_user)):
     from bson import ObjectId
 
     payment = payment_collection.find_one({"_id": ObjectId(payment_id)})
@@ -73,7 +76,10 @@ def get_payment(payment_id: str):
 
 
 @router.get("/customer/{customer_id}")
-def get_customer_payments(customer_id: str):
+def get_customer_payments(customer_id: str, current_user: dict = Depends(get_current_user)):
+    # Only allow users to view their own payments
+    if customer_id != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view other customer's payments")
     payments = list(payment_collection.find({"customer_id": customer_id}))
 
     serialized = []

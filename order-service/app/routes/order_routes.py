@@ -1,9 +1,10 @@
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from app.database import order_collection
 from app.schemas import OrderCreate, OrderStatusUpdate, PaymentStatusUpdate
 from app.utils import serialize_doc
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -14,9 +15,11 @@ def health_check():
 
 
 @router.post("/create")
-def create_order(payload: OrderCreate):
+def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_user)):
+    # Use email from JWT token as customer_id
+    customer_id = current_user["email"]
     order_doc = {
-        "customer_id": payload.customer_id,
+        "customer_id": customer_id,
         "items": [item.dict() for item in payload.items],
         "total_amount": payload.total_amount,
         "shipping_address": payload.shipping_address,
@@ -38,8 +41,9 @@ def create_order(payload: OrderCreate):
 
 
 @router.get("/")
-def get_all_orders():
-    orders = list(order_collection.find().sort("created_at", -1))
+def get_all_orders(current_user: dict = Depends(get_current_user)):
+    customer_id = current_user["email"]
+    orders = list(order_collection.find({"customer_id": customer_id}).sort("created_at", -1))
 
     serialized_orders = []
     for order in orders:
@@ -68,7 +72,10 @@ def get_order_by_id(order_id: str):
 
 
 @router.get("/customer/{customer_id}")
-def get_orders_by_customer(customer_id: str):
+def get_orders_by_customer(customer_id: str, current_user: dict = Depends(get_current_user)):
+    # Only allow users to view their own orders
+    if customer_id != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view other customer's orders")
     orders = list(order_collection.find({"customer_id": customer_id}).sort("created_at", -1))
 
     serialized_orders = []

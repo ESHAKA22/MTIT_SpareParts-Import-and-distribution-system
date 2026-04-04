@@ -3,7 +3,6 @@ from typing import Optional, List
 
 
 class CartItemCreate(BaseModel):
-    customer_id: str = Field(..., example="CUS001")
     product_id: str = Field(..., example="PRD001")
     product_name: str = Field(..., example="Tractor Brake Pad")
     unit_price: float = Field(..., gt=0, example=2500.00)

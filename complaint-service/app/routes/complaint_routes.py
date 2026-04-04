@@ -1,18 +1,21 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from bson import ObjectId
 from app.database import complaint_collection
 from app.schemas import ComplaintCreate, ComplaintUpdate
 from app.utils import serialize
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 
 # CREATE COMPLAINT
 @router.post("/")
-def create_complaint(data: ComplaintCreate):
+def create_complaint(data: ComplaintCreate, current_user: dict = Depends(get_current_user)):
+    # Use email from JWT token as customer_id
+    customer_id = current_user["email"]
     complaint = {
-        "customer_id": data.customer_id,
+        "customer_id": customer_id,
         "order_id": data.order_id,
         "subject": data.subject,
         "description": data.description,
@@ -29,14 +32,18 @@ def create_complaint(data: ComplaintCreate):
 
 # GET ALL COMPLAINTS
 @router.get("/")
-def get_all():
-    complaints = list(complaint_collection.find())
+def get_all(current_user: dict = Depends(get_current_user)):
+    customer_id = current_user["email"]
+    complaints = list(complaint_collection.find({"customer_id": customer_id}))
     return [serialize(c) for c in complaints]
 
 
 # GET BY CUSTOMER
 @router.get("/customer/{customer_id}")
-def get_by_customer(customer_id: str):
+def get_by_customer(customer_id: str, current_user: dict = Depends(get_current_user)):
+    # Only allow users to view their own complaints
+    if customer_id != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view other customer's complaints")
     complaints = list(complaint_collection.find({"customer_id": customer_id}))
     return [serialize(c) for c in complaints]
 

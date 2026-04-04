@@ -4,7 +4,6 @@ from typing import Optional
 
 class PaymentCreate(BaseModel):
     order_id: str = Field(..., example="ORD1001")
-    customer_id: str = Field(..., example="CUS001")
     amount: float = Field(..., gt=0, example=5000.00)
     payment_method: str = Field(..., example="CARD")
     card_number: Optional[str] = Field(default=None, example="4111111111111112")

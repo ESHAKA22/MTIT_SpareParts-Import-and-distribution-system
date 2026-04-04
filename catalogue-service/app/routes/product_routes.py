@@ -1,7 +1,8 @@
 import os
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from app.database import product_collection
 from app.utils import serialize
+from app.auth import get_current_user
 from bson import ObjectId
 import shutil
 
@@ -19,7 +20,8 @@ async def create_product(
     price: float = Form(...),
     stock: int = Form(...),
     description: str = Form(...),
-    image: UploadFile = File(...)
+    image: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
     file_path = f"{UPLOAD_DIR}/{image.filename}"
 
@@ -61,7 +63,7 @@ def get_product(product_id: str):
 
 # UPDATE PRODUCT
 @router.put("/{product_id}")
-def update_product(product_id: str, data: dict):
+def update_product(product_id: str, data: dict, current_user: dict = Depends(get_current_user)):
     product_collection.update_one(
         {"_id": ObjectId(product_id)},
         {"$set": data}
@@ -73,6 +75,6 @@ def update_product(product_id: str, data: dict):
 
 # DELETE PRODUCT
 @router.delete("/{product_id}")
-def delete_product(product_id: str):
+def delete_product(product_id: str, current_user: dict = Depends(get_current_user)):
     product_collection.delete_one({"_id": ObjectId(product_id)})
     return {"message": "Product deleted"}

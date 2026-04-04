@@ -4,6 +4,17 @@ from pymongo import MongoClient
 
 load_dotenv()
 
-client = MongoClient(os.getenv("MONGO_URL"))
-db = client[os.getenv("DB_NAME")]
-complaint_collection = db[os.getenv("COLLECTION_NAME")]
+MONGO_URL = os.getenv("MONGO_URL")
+
+# Try to connect to MongoDB, fallback to memory if fails
+try:
+    client = MongoClient(MONGO_URL)
+    db = client[os.getenv("DB_NAME", "complaint_db")]
+    complaint_collection = db[os.getenv("COLLECTION_NAME", "complaints")]
+    # Test connection
+    client.admin.command('ping')
+    print("Connected to MongoDB")
+except Exception as e:
+    print(f"MongoDB connection failed: {e}")
+    print("Using in-memory database")
+    from app.database_memory import complaint_collection

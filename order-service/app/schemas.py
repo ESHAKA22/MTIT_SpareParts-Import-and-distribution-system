@@ -11,7 +11,6 @@ class OrderItem(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    customer_id: str = Field(..., example="CUS001")
     items: List[OrderItem]
     total_amount: float = Field(..., gt=0, example=5000.00)
     shipping_address: str = Field(..., example="Negombo, Sri Lanka")

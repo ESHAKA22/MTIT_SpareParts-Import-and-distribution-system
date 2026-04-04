@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.database import cart_collection
 from app.schemas import CartItemCreate, CartItemUpdate
 from app.utils import serialize_doc
+from app.auth import get_current_user
+
+
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 
@@ -12,10 +15,12 @@ def health_check():
 
 
 @router.post("/add")
-def add_to_cart(payload: CartItemCreate):
+def add_to_cart(payload: CartItemCreate, current_user: dict = Depends(get_current_user)):
+    # Use email from JWT token as customer_id
+    customer_id = current_user["email"]
     existing_item = cart_collection.find_one(
         {
-            "customer_id": payload.customer_id,
+            "customer_id": customer_id,
             "product_id": payload.product_id
         }
     )
@@ -43,7 +48,7 @@ def add_to_cart(payload: CartItemCreate):
         }
 
     new_item = {
-        "customer_id": payload.customer_id,
+        "customer_id": customer_id,
         "product_id": payload.product_id,
         "product_name": payload.product_name,
         "unit_price": payload.unit_price,
@@ -62,8 +67,9 @@ def add_to_cart(payload: CartItemCreate):
     }
 
 
-@router.get("/{customer_id}")
-def get_cart(customer_id: str):
+@router.get("/")
+def get_cart(current_user: dict = Depends(get_current_user)):
+    customer_id = current_user["email"]
     items = list(cart_collection.find({"customer_id": customer_id}))
 
     if not items:
@@ -131,10 +137,12 @@ def remove_cart_item(item_id: str):
     return {"message": "Cart item removed successfully."}
 
 
-@router.delete("/clear/{customer_id}")
-def clear_cart(customer_id: str):
+@router.delete("/clear")
+def clear_cart(current_user: dict = Depends(get_current_user)):
+    customer_id = current_user["email"]
     result = cart_collection.delete_many({"customer_id": customer_id})
     return {
         "message": "Cart cleared successfully.",
         "deleted_count": result.deleted_count
     }
+

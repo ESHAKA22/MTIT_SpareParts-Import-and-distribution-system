@@ -185,9 +185,7 @@ async def proxy_request(request: Request, target_base_url: str, path: str) -> Re
 
 
 
-# -----------------------------
-# Cart proxy routes
-# -----------------------------
+
 
 @app.api_route("/cart", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_cart_root")
 async def proxy_cart_root(request: Request):
@@ -197,9 +195,7 @@ async def proxy_cart_root(request: Request):
 async def proxy_cart(path: str, request: Request):
     return await proxy_request(request, CART_SERVICE_URL, f"cart/{path}")
 
-# -----------------------------
-# payments proxy routes
-# -----------------------------
+
 @app.api_route("/payments", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_payments_root")
 async def proxy_payments_root(request: Request):
     return await proxy_request(request, PAYMENT_SERVICE_URL, "payments")
@@ -208,9 +204,7 @@ async def proxy_payments_root(request: Request):
 async def proxy_payments(path: str, request: Request):
     return await proxy_request(request, PAYMENT_SERVICE_URL, f"payments/{path}")
 
-# -----------------------------
-# User proxy routes
-# -----------------------------
+
 @app.api_route("/users", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_users_root(request: Request):
     return await proxy_request(request, USER_SERVICE_URL, "api/users")
@@ -229,9 +223,7 @@ async def proxy_orders_root(request: Request):
 async def proxy_orders(path: str, request: Request):
     return await proxy_request(request, ORDER_SERVICE_URL, f"orders/{path}")
 
-# -----------------------------
-# Complaint proxy routes
-# -----------------------------
+
 @app.api_route("/complaints", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_complaints_root")
 async def proxy_complaints_root(request: Request):
     return await proxy_request(request, COMPLAINT_SERVICE_URL, "complaints")
@@ -241,9 +233,7 @@ async def proxy_complaints_root(request: Request):
 async def proxy_complaints(path: str, request: Request):
     return await proxy_request(request, COMPLAINT_SERVICE_URL, f"complaints/{path}")
 
-# -----------------------------
-# Catalogue proxy routes
-# -----------------------------
+
 @app.api_route("/catalogue", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_root")
 async def proxy_catalogue_root(request: Request):
     return await proxy_request(request, CATALOGUE_SERVICE_URL, "products")
