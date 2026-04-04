@@ -43,6 +43,31 @@ async def create_product(
     return serialize(created)
 
 
+# CREATE PRODUCT WITH JSON (for API testing)
+@router.post("/json")
+async def create_product_json(
+    name: str,
+    category: str,
+    price: float,
+    stock: int,
+    description: str,
+    current_user: dict = Depends(get_current_user)
+):
+    product = {
+        "name": name,
+        "category": category,
+        "price": price,
+        "stock": stock,
+        "description": description,
+        "image": "default.jpg"  # Default image for JSON endpoint
+    }
+
+    result = product_collection.insert_one(product)
+    created = product_collection.find_one({"_id": result.inserted_id})
+
+    return serialize(created)
+
+
 # GET ALL PRODUCTS
 @router.get("/")
 def get_products():

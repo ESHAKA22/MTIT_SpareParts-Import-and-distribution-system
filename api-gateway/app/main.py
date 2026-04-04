@@ -242,3 +242,8 @@ async def proxy_catalogue_root(request: Request):
 @app.api_route("/catalogue/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], operation_id="proxy_catalogue_path")
 async def proxy_catalogue(path: str, request: Request):
     return await proxy_request(request, CATALOGUE_SERVICE_URL, f"products/{path}")
+
+# Special route for JSON product creation (for API testing)
+@app.api_route("/catalogue/json", methods=["POST"], operation_id="proxy_catalogue_json")
+async def proxy_catalogue_json(request: Request):
+    return await proxy_request(request, CATALOGUE_SERVICE_URL, "products/json")
